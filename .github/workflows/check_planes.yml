@@ -1,0 +1,29 @@
+name: Check FlightAware
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # This code means "Every 30 minutes"
+  workflow_dispatch:        # This allows you to run it manually with a button click
+
+jobs:
+  run-tracker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install requests beautifulsoup4 cloudscraper
+
+    - name: Run Python Script
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: python plane_tracker.py
