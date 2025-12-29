@@ -2,7 +2,7 @@ name: Check FlightAware
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # This code means "Every 30 minutes"
+    - cron: '0,30 * * * *'  # This code means "Every 30 minutes"
   workflow_dispatch:        # This allows you to run it manually with a button click
 
 jobs:
