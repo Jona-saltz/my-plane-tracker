@@ -3,7 +3,6 @@ Md11,MD-11
 Mir2,Dassault Mirage 2000
 Rfal,Dassault Rafale
 F104,Lockheed F-104 Starfighter
-AT-502,air tractor 502
 SLCH,351 Stratolaunch
 HRON,IAI Heron
 lca tejas, hindustan lca tejas
@@ -15,3 +14,4 @@ CAML, sopwith camel
 ULAC, Ultralight
 Avro RJ70, British Aerospace Avro RJ70
 BRB2, Brantly B-2B
+KFIR, IAI Kfir
