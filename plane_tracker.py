@@ -4,21 +4,31 @@ import time
 import datetime
 import csv
 import os
+import io
+# This library allows us to read the .env file locally
+from dotenv import load_dotenv
 
-# --- CONFIGURATION (UPDATED FOR GITHUB) ---
-# Instead of hardcoding, we get these from the environment
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+# --- CONFIGURATION ---
 
-CSV_FILENAME = "planes.csv"
+# 1. Load Secrets
+# This command looks for a .env file on your computer.
+# If it doesn't find one (like on GitHub Actions), it skips it without crashing.
+load_dotenv()
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+# 2. Centralized CSV URL
+# This points to the "Raw" version of your file on GitHub.
+# Now both your PC and the GitHub Action read from this exact same list.
+CSV_URL = "https://raw.githubusercontent.com/Jona-saltz/my-plane-tracker/refs/heads/main/planes.csv?token=GHSAT0AAAAAADSEHR6BZIB4AAUWGQNA4K4E2KYK3NQ"
 
 
-# We don't need the loop or sleep here because GitHub will handle the scheduling!
 # ---------------------
 
 def send_telegram_alert(message):
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        print("Error: Missing Telegram keys in environment variables.")
+        print("Error: Keys not found. Check .env (local) or Secrets (GitHub).")
         return
 
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -31,34 +41,36 @@ def send_telegram_alert(message):
 
 
 def get_search_strings():
-    """Reads the list of planes, trying different encodings."""
-    search_list = []
-    if not os.path.exists(CSV_FILENAME):
-        print(f"Warning: {CSV_FILENAME} not found. Using default list.")
-        return ["Beluga", "A3ST"]
+    """Downloads the CSV from GitHub so everyone uses the same list."""
+    print("Fetching latest plane list from GitHub...")
+    try:
+        # Get the file from the internet
+        response = requests.get(CSV_URL)
+        if response.status_code != 200:
+            print(f"Error fetching CSV: {response.status_code}")
+            return ["Beluga"]  # Fallback if internet fails
 
-    encodings_to_try = ['utf-8-sig', 'utf-8', 'cp1252', 'latin-1']
+        # We decode 'utf-8-sig' to automatically remove that invisible BOM character
+        file_content = io.StringIO(response.content.decode('utf-8-sig'))
 
-    for encoding in encodings_to_try:
-        try:
-            with open(CSV_FILENAME, 'r', encoding=encoding) as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    if row:
-                        search_list.append(row[0].strip())
-            return search_list
-        except UnicodeDecodeError:
-            continue
+        search_list = []
+        reader = csv.reader(file_content)
+        for row in reader:
+            if row:
+                # remove extra spaces and add to list
+                search_list.append(row[0].strip())
 
-    print("Error: Could not read CSV.")
-    return []
+        return search_list
+
+    except Exception as e:
+        print(f"Error reading online CSV: {e}")
+        return []
 
 
 def check_flightaware():
-    # Use cloudscraper just in case FlightAware gets stricter
+    # We use cloudscraper to avoid being blocked by FlightAware's anti-bot protection
     import cloudscraper
     scraper = cloudscraper.create_scraper()
-
     url = "https://www.flightaware.com/live/aircrafttype/"
 
     try:
@@ -69,7 +81,7 @@ def check_flightaware():
 
         response = scraper.get(url)
         if response.status_code != 200:
-            print(f"Error reaching site: Status {response.status_code}")
+            print(f"Error reaching site: {response.status_code}")
             return
 
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -81,17 +93,14 @@ def check_flightaware():
                 found_matches.append(plane)
 
         if found_matches:
-            msg = f"✈️ GITALERT! Found aircraft:\n" + "\n".join(found_matches) + f"\n\nCheck now: {url}"
+            msg = f"✈️ ALERT! Found aircraft: {', '.join(found_matches)}\nCheck now: {url}"
             send_telegram_alert(msg)
         else:
             print("No matches found.")
 
     except Exception as e:
-        print(f"Error during check: {e}")
+        print(f"Error: {e}")
 
 
 if __name__ == "__main__":
-    # The 'while True' loop is REMOVED. GitHub runs this script once, then shuts down until next time.
-
     check_flightaware()
-
