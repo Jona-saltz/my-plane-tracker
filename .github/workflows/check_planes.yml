@@ -20,7 +20,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install requests beautifulsoup4 cloudscraper
+        pip install requests beautifulsoup4 cloudscraper python-dotenv
 
     - name: Run Python Script
       env:
