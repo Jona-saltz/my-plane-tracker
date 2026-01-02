@@ -81,7 +81,7 @@ def check_flightaware():
                 found_matches.append(plane)
 
         if found_matches:
-            msg = f"✈️ ALERT! Found aircraft:\n" + "\n".join(found_matches) + f"\n\nCheck now: {url}"
+            msg = f"✈️ GITALERT! Found aircraft:\n" + "\n".join(found_matches) + f"\n\nCheck now: {url}"
             send_telegram_alert(msg)
         else:
             print("No matches found.")
@@ -94,3 +94,4 @@ if __name__ == "__main__":
     # The 'while True' loop is REMOVED. GitHub runs this script once, then shuts down until next time.
 
     check_flightaware()
+
