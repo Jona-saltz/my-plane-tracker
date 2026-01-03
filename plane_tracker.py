@@ -41,43 +41,49 @@ def send_telegram_alert(message):
 
 
 def get_search_strings():
-    """Downloads the CSV from GitHub so everyone uses the same list."""
+    """Downloads the CSV and returns a dictionary: { 'PlaneName': 'Description' }"""
     print("Fetching latest plane list from GitHub...")
     try:
-        # Get the file from the internet
         response = requests.get(CSV_URL)
         if response.status_code != 200:
             print(f"Error fetching CSV: {response.status_code}")
-            return ["Beluga"]  # Fallback if internet fails
+            return {}
 
-        # We decode 'utf-8-sig' to automatically remove that invisible BOM character
         file_content = io.StringIO(response.content.decode('utf-8-sig'))
 
-        search_list = []
+        # We use a dictionary now: Key = Column A (Name), Value = Column B (Description)
+        search_data = {}
         reader = csv.reader(file_content)
+
         for row in reader:
             if row:
-                # remove extra spaces and add to list
-                search_list.append(row[0].strip())
+                plane_name = row[0].strip()
+                # Check if Column B exists, otherwise use empty string
+                plane_desc = row[1].strip() if len(row) > 1 else ""
 
-        return search_list
+                # Store it in the dictionary
+                search_data[plane_name] = plane_desc
+
+        return search_data
 
     except Exception as e:
         print(f"Error reading online CSV: {e}")
-        return []
+        return {}
 
 
 def check_flightaware():
-    # We use cloudscraper to avoid being blocked by FlightAware's anti-bot protection
     import cloudscraper
     scraper = cloudscraper.create_scraper()
     url = "https://www.flightaware.com/live/aircrafttype/"
 
     try:
         current_time = datetime.datetime.now().strftime('%H:%M')
-        search_strings = get_search_strings()
 
-        print(f"[{current_time}] Checking for: {search_strings}")
+        # This is now a dictionary: {'Beluga': 'Transport', 'An-124': 'Heavy'}
+        search_data = get_search_strings()
+
+        # We only want to print the Keys (Column A) in the log
+        print(f"[{current_time}] Checking for: {list(search_data.keys())}")
 
         response = scraper.get(url)
         if response.status_code != 200:
@@ -85,22 +91,29 @@ def check_flightaware():
             return
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        page_text = soup.get_text()
+        page_text = soup.get_text().lower()  # Convert page to lower case once for speed
 
         found_matches = []
-        for plane in search_strings:
-            if plane.lower() in page_text.lower():
-                found_matches.append(plane)
+
+        # Iterate through the dictionary items (Name, Description)
+        for plane_name, plane_desc in search_data.items():
+
+            # STRICTLY search only for the Name (Column A)
+            if plane_name.lower() in page_text:
+                # Format the result as "Name, Description"
+                formatted_result = f"{plane_name}, {plane_desc}"
+                found_matches.append(formatted_result)
 
         if found_matches:
-            msg = f"✈️ ALERT! Found aircraft:\n {', '.join(found_matches)}\nCheck now: {url}"
+            # Join them with newlines so they list nicely
+            list_text = '\n'.join(found_matches)
+            msg = f"✈️ ALERT! Found aircraft:\n\n{list_text}\n\nCheck now: {url}"
             send_telegram_alert(msg)
         else:
             print("No matches found.")
 
     except Exception as e:
         print(f"Error: {e}")
-
 
 if __name__ == "__main__":
     check_flightaware()
