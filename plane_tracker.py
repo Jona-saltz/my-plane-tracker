@@ -21,7 +21,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # 2. Centralized CSV URL
 # This points to the "Raw" version of your file on GitHub.
 # Now both your PC and the GitHub Action read from this exact same list.
-CSV_URL = "https://raw.githubusercontent.com/Jona-saltz/my-plane-tracker/refs/heads/main/planes.csv?token=GHSAT0AAAAAADSEHR6BZIB4AAUWGQNA4K4E2KYK3NQ"
+CSV_URL = "https://raw.githubusercontent.com/Jona-saltz/my-plane-tracker/refs/heads/main/planes.csv"
 
 
 # ---------------------
@@ -93,7 +93,7 @@ def check_flightaware():
                 found_matches.append(plane)
 
         if found_matches:
-            msg = f"✈️ ALERT! Found aircraft: {', '.join(found_matches)}\nCheck now: {url}"
+            msg = f"✈️ ALERT! Found aircraft:\n {', '.join(found_matches)}\nCheck now: {url}"
             send_telegram_alert(msg)
         else:
             print("No matches found.")

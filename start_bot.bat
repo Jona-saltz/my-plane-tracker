@@ -1,9 +1,7 @@
 @echo off
-echo Checking for updates from GitHub...
+cd /d "%~dp0"
+echo Checking for updates...
 git pull
-echo.
-echo Starting the Plane Tracker...
+echo Starting bot...
 python plane_tracker.py
-echo.
-echo Script finished.
-pause
+:: pause removed so it closes automatically
